@@ -1,0 +1,39 @@
+WALLET, DEPOSITS, WITHDRAWALS & FEES
+
+Internal balance system
+- Every user has an ETH balance inside the platform, shown in the header and on the dashboard.
+- Purchases, bids, and the minting fee are paid from this balance.
+
+Deposits (Ethereum only)
+- "Deposit" page generates a unique Ethereum deposit address per user (HD wallet derivation).
+- Show the address as text and a QR code, with a note: "Send ETH only."
+- A background worker (ethers.js) watches the blockchain for incoming transfers.
+- Credit the user's balance after a configurable number of confirmations (default 12).
+- Statuses: pending, confirming, completed, failed.
+- Store tx hash, amount, confirmations, and timestamp.
+
+Withdrawals (to an Ethereum address)
+- "Withdraw" page: user enters amount and destination Ethereum address.
+- Validate the address (checksum) and check balance covers amount plus network fee.
+- Minimum withdrawal configurable in admin settings.
+- Statuses: pending, approved, processing, completed, rejected.
+- Admin can approve or reject withdrawals (toggle for auto-approve under a set amount).
+- On approval, the platform hot wallet sends ETH to the address and stores the tx hash.
+- Re-check balance and lock funds at request time to prevent double spending.
+
+Minting fee
+- Minting costs a fixed 0.2 ETH, deducted from the artist's balance before minting.
+- Block minting if balance is below 0.2 ETH, with a clear message and a link to Deposit.
+- The fee is stored in admin settings (default 0.2 ETH) so I can change it later.
+- Record each fee in the transactions table.
+
+Admin additions
+- View and edit any user's ETH balance (with a required reason, saved to the audit log).
+- Deposits list, withdrawals queue with approve/reject, minting fee revenue report.
+- Hot wallet balance display and low-balance alert.
+
+DATABASE ADDITIONS
+Wallet (userId, balance), DepositAddress, Deposit, Withdrawal, add "type" to Transaction (deposit, withdrawal, mint_fee, purchase, sale, royalty)
+
+SECURITY ADDITIONS
+Store private keys and the HD seed only in environment variables or a secrets manager, never in code. Use database transactions with row locking for all balance changes. Add rate limits and 2FA/email confirmation for withdrawals.

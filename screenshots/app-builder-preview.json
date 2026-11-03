@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Agora Gallery NFTs",
+      "hasCanvas": false,
+      "bodyTextLen": 1772,
+      "bodyTextHash": "6679f2f35332e15f6650c20640374c0469ff3797b1079c3ef0e33a7f9108f37b",
+      "bodyTextPrefix": "A Agora Gallery NFTs Explore Artists Search artworks Sign in Cre",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Agora Gallery NFTs",
+      "hasCanvas": false,
+      "bodyTextLen": 1699,
+      "bodyTextHash": "c45c42e5a2714c7077686e2beecf403ee7bcb7920ba3c1b1260b269a2e2ba100",
+      "bodyTextPrefix": "A Agora Sign in Create account All Photography Painting Textile ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

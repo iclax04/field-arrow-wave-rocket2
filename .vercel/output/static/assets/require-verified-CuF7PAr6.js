@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BtH0gOTJ.js";import{f as t,nt as n}from"./index-AyZVu65s.js";var r=e();function i(){let{me:e}=t();return!e||e.emailVerified!==!1?null:(0,r.jsx)(n,{to:`/verify-email`,search:{email:e.email??``,code:``},replace:!0})}export{i as t};

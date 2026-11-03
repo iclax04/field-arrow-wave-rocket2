@@ -1,0 +1,40 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Agora Gallery NFTs",
+      "hasCanvas": false,
+      "bodyTextLen": 1759,
+      "bodyTextHash": "7a8f5bed74379a6191df8998b69658656376e8e7f177fea2edc6791f11be5c80",
+      "bodyTextPrefix": "A Agora Gallery NFTs Explore Artists Search artworks Sign in Cre",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Agora Gallery NFTs",
+      "hasCanvas": false,
+      "bodyTextLen": 525,
+      "bodyTextHash": "f4547bce637e5e0c1e01203470d74254eb5943432849df900441887a1554960a",
+      "bodyTextPrefix": "A Agora Sign in Create account Agora Gallery NFTs A marketplace ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": true,
+  "baselineReasons": [
+    "mobile: body text collapsed (1699 -> 525 chars)"
+  ]
+}

@@ -1,0 +1,36 @@
+Build a full-stack NFT marketplace web app similar to Rarible.com, with a front end, back end, and admin panel. Give me complete, working code with file structure, setup steps, and .env.example.
+
+TECH STACK
+- Front end: Next.js (React) + Tailwind CSS, responsive, dark/light mode
+- Back end: Node.js + Express (or Next.js API routes) with PostgreSQL (Prisma ORM)
+- Blockchain: Ethereum-compatible (Polygon for low fees), Solidity ERC-721 smart contract (OpenZeppelin), Hardhat for deploy/testing
+- Wallet: MetaMask/WalletConnect via wagmi + ethers.js
+- Storage: IPFS (Pinata) for artwork files and metadata
+- Auth: wallet sign-in (SIWE) plus email/password option, JWT sessions
+
+USER FEATURES
+1. Home page: featured artworks, trending artists, categories, search and filters (price, category, artist)
+2. Artist profile pages: avatar, bio, social links, created and owned items
+3. Mint page: upload image/video/audio, title, description, category, royalty % (0-10%), optional price; uploads to IPFS then mints on-chain
+4. Artwork detail page: media, owner, creator, price history, buy now, make offer, place bid
+5. Listings: fixed price and timed auction; buy flow with wallet confirmation
+6. Royalties paid to the original artist on every resale
+7. Favorites/likes, activity feed, notifications
+8. My dashboard: created, owned, listed, sold, purchase history
+
+ADMIN BACKEND (/admin, role-protected)
+- Dashboard: total users, NFTs, sales volume, platform fees earned
+- User management: list, search, view, EDIT user info (name, username, email, bio, avatar, wallet address, role, status), suspend/ban/delete, reset password
+- Artwork management: view, hide, or remove flagged NFTs
+- Transaction and sales log with CSV export
+- Settings: platform fee %, categories, featured collections
+- Audit log of every admin action
+
+DATABASE MODELS
+User, Artwork, Listing, Bid/Offer, Transaction, Category, Notification, AuditLog
+
+SECURITY
+Input validation, rate limiting, role-based access control, secure file upload checks, reentrancy protection in the smart contract.
+
+OUTPUT FORMAT
+1) Folder structure 2) Smart contract + deploy script 3) Database schema 4) Back end API routes 5) Front end pages/components 6) Admin panel code 7) Step-by-step local setup and deployment guide. Build it piece by piece, starting with the smart contract and database, and ask me to say "continue" before moving to each next part.
