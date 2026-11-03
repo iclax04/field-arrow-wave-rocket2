@@ -27,7 +27,7 @@ type Tab = StudioTab;
 
 function DashboardPage() {
   const { user, isPending } = useCurrentUserState();
-  const { me, refresh, theme, toggleTheme } = useMarket();
+  const { me, refresh } = useMarket();
   const [tab, setTab] = useState<Tab>("holdings");
   const [data, setData] = useState<Awaited<ReturnType<typeof getDashboard>> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,10 +126,6 @@ function DashboardPage() {
       onWithdraw={(id) => {
         withdrawOffer({ data: id }).then(() => { toast.success("Withdrawn"); refresh(); load(); }).catch((caught) => toast.error(errMsg(caught)));
       }}
-      onTheme={(mode) => {
-        if (theme !== mode) toggleTheme();
-      }}
-      theme={theme}
       onSignOut={() => void signOut("/")}
       profile={me ? (<><ProfileForm /><PasswordForm /></>) : null}
     />

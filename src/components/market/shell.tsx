@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu, Moon, Search, Sun, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { SignedIn } from "@/lib/auth/gates";
@@ -14,7 +14,7 @@ import { BackButton } from "./back-button";
 const floor = { q: "", category: "", kind: "", min: "", max: "", sort: "newest" as const, artist: "" };
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { me, toggleTheme, timeZone, setTimeZone } = useMarket();
+  const { me, timeZone, setTimeZone } = useMarket();
   const { user } = useCurrentUserState();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -50,7 +50,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const home = pathname === "/";
   const studio = pathname === "/dashboard";
   const showPublic = !studio && !user;
-  const bar = home ? "border-white/10 bg-[#0d0d0f] text-white" : "border-line bg-bg text-fg";
+  const bar = home ? "border-white/15 bg-[#16181d] text-white" : "border-line bg-bg text-fg";
 
   return (
     <div className={home || studio ? "min-h-screen bg-[#0d0d0f] text-white" : "min-h-screen bg-bg text-fg"}>
@@ -89,25 +89,24 @@ export function Shell({ children }: { children: ReactNode }) {
             </div>
           )}
         </div>
-        <div className="mx-auto hidden h-16 max-w-6xl items-center gap-2 px-4 md:flex">
-          <Link to="/" className="flex min-w-0 items-center gap-2 text-lg font-extrabold tracking-tight">
+        <div className="mx-auto hidden h-16 max-w-6xl items-center gap-3 px-4 md:flex">
+          <Link to="/" className="flex shrink-0 items-center gap-2 text-lg font-extrabold tracking-tight text-white">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-sm text-white">A</span>
-            Agora Gallery NFTs
+            <span className={home ? "text-white" : "text-fg"}>Agora Gallery NFTs</span>
           </Link>
-          <nav className="ml-4 flex items-center gap-1">
-            <NavLink to="/explore" search={floor} active={pathname === "/explore"}>Explore</NavLink>
-            <NavLink to="/artists" active={pathname.startsWith("/artist")}>Artists</NavLink>
+          <nav className="flex items-center gap-1">
+            <NavLink to="/explore" search={floor} active={pathname === "/explore"} onDark={home}>Explore</NavLink>
+            <NavLink to="/artists" active={pathname.startsWith("/artist")} onDark={home}>Artists</NavLink>
           </nav>
-          <form onSubmit={search} className="ml-auto w-56">
-            <SearchField q={q} setQ={setQ} />
+          <form onSubmit={search} className="ml-auto w-64">
+            <SearchField q={q} setQ={setQ} onDark={home} />
           </form>
-          <ThemeButton onClick={toggleTheme} />
           {user ? (
             <AccountButton letter={letter} name={me?.profile.display_name} open={account} setOpen={setAccount} />
           ) : (
             <>
-              <Link to="/login" search={{ mode: "in" }} className="btn-ghost px-3 text-sm">Sign in</Link>
-              <Link to="/create-account" className="btn px-3 text-sm">Create account</Link>
+              <Link to="/login" search={{ mode: "in" }} className={home ? "rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white" : "btn-ghost px-3 text-sm"}>Sign in</Link>
+              <Link to="/create-account" className="btn px-4 text-sm">Create account</Link>
             </>
           )}
         </div>
@@ -135,15 +134,6 @@ export function Shell({ children }: { children: ReactNode }) {
                   <NavLink to="/explore" search={floor} active={pathname === "/explore"}>Explore</NavLink>
                   <NavLink to="/artists" active={pathname.startsWith("/artist")}>Artists</NavLink>
                 </nav>
-                <button
-                  type="button"
-                  className="mt-3 flex min-h-12 w-full items-center justify-between rounded-xl border border-line bg-surface px-4 py-3 text-left text-sm font-semibold"
-                  onClick={toggleTheme}
-                >
-                  Dark mode
-                  <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold text-white dark:hidden">Off</span>
-                  <span className="hidden rounded-full bg-accent px-3 py-1 text-xs font-bold text-white dark:inline">On</span>
-                </button>
                 <div className="mt-6 grid gap-2">
                   <SignedIn>
                     <Link to="/dashboard" className="btn-ghost">Dashboard</Link>
@@ -171,26 +161,17 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-function ThemeButton({ onClick, className = "" }: { onClick: () => void; className?: string }) {
-  return (
-    <button
-      type="button"
-      className={`grid h-11 w-11 place-items-center rounded-xl border border-line bg-surface ${className}`}
-      onClick={onClick}
-      aria-label="Toggle color theme"
-    >
-      <Moon size={18} className="dark:hidden" aria-hidden />
-      <Sun size={18} className="hidden dark:block" aria-hidden />
-    </button>
-  );
-}
-
-function SearchField({ q, setQ }: { q: string; setQ: (value: string) => void }) {
+function SearchField({ q, setQ, onDark = false }: { q: string; setQ: (value: string) => void; onDark?: boolean }) {
   return (
     <label className="relative block">
       <span className="sr-only">Search artworks</span>
-      <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
-      <input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search artworks" className="field bg-surface pl-9" />
+      <Search size={16} className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 ${onDark ? "text-white/60" : "text-muted"}`} aria-hidden />
+      <input
+        value={q}
+        onChange={(event) => setQ(event.target.value)}
+        placeholder="Search artworks"
+        className={`field pl-9 ${onDark ? "border-white/20 bg-white/10 text-white placeholder:text-white/50" : "bg-surface"}`}
+      />
     </label>
   );
 }
@@ -199,14 +180,16 @@ function NavLink({
   to,
   search,
   active,
+  onDark = false,
   children,
 }: {
   to: "/explore" | "/artists";
   search?: typeof floor;
   active: boolean;
+  onDark?: boolean;
   children: string;
 }) {
-  const className = `rounded-xl px-3 py-3 text-base font-semibold md:py-2 md:text-sm ${active ? "bg-accent text-white" : "text-fg"}`;
+  const className = `rounded-xl px-3 py-3 text-base font-semibold md:py-2 md:text-sm ${active ? "bg-accent text-white" : onDark ? "text-white" : "text-fg"}`;
   if (search) {
     return (
       <Link to={to} search={search} className={className}>

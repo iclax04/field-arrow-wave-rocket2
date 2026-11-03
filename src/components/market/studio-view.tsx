@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { BackButton } from "./back-button";
-import { ChevronDown, Eye, EyeOff, Gem, LayoutGrid, List, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Gem, LayoutGrid, List, Menu, Search, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { Card } from "@/lib/market.functions";
 import { ethUsdRate, formatUsd, formatWhen, shortAddr } from "@/lib/format";
@@ -51,8 +51,6 @@ export function StudioView({
   onAccept,
   onDecline,
   onWithdraw,
-  onTheme,
-  theme,
   onSignOut,
   profile,
 }: {
@@ -94,8 +92,6 @@ export function StudioView({
   onAccept: (id: number) => void;
   onDecline: (id: number) => void;
   onWithdraw: (id: number) => void;
-  onTheme: (mode: "light" | "dark") => void;
-  theme: "light" | "dark";
   onSignOut: () => void;
   profile: ReactNode;
 }) {
@@ -359,10 +355,6 @@ export function StudioView({
           <Gem size={16} className="text-white/70" />
           {hideValue ? "••••" : money(balanceEth, unit)}
         </p>
-        <div className="flex items-center gap-1 text-white/50">
-          <button type="button" aria-label="Light" className={theme === "light" ? "text-white" : ""} onClick={() => onTheme("light")}><Sun size={16} /></button>
-          <button type="button" aria-label="Dark" className={theme === "dark" ? "text-white" : ""} onClick={() => onTheme("dark")}><Moon size={16} /></button>
-        </div>
         <div className="flex rounded-full bg-white/10 p-0.5 text-xs font-semibold">
           <button type="button" className={`rounded-full px-3 py-1 ${unit === "eth" ? "bg-white text-black" : "text-white/70"}`} onClick={() => setUnit("eth")}>Crypto</button>
           <button type="button" className={`rounded-full px-3 py-1 ${unit === "usd" ? "bg-white text-black" : "text-white/70"}`} onClick={() => setUnit("usd")}>USD</button>

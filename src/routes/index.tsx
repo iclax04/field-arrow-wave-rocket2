@@ -2,10 +2,9 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { Camera, Frame, Grid2x2, Image, Layers, Shapes } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { BuyButton } from "@/components/market/cards";
-import { useMarket } from "@/components/market/provider";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { ethUsdRate, errMsg, formatUsd } from "@/lib/format";
-import { getHome } from "@/lib/market.functions";
+import { getHome, type Card } from "@/lib/market.functions";
 
 export const Route = createFileRoute("/")({ component: HomePage });
 
@@ -28,7 +27,6 @@ function HomePage() {
   const [paused, setPaused] = useState(false);
   const [shown, setShown] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const { toggleTheme } = useMarket();
 
   useEffect(() => {
     setMounted(true);
@@ -70,9 +68,9 @@ function HomePage() {
 
   if (!mounted || isPending) {
     return (
-      <div className="bg-[#0d0d0f] px-4 py-6">
-        <div className="h-8 w-40 animate-pulse rounded-full bg-white/10" />
-        <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <div className="aspect-[5/4] animate-pulse rounded-3xl bg-white/10 md:aspect-[2/1]" />
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-white/10" />
           ))}
@@ -87,140 +85,173 @@ function HomePage() {
   const rows = (data?.floor ?? []).filter((work) => chip === "all" || work.category_slug === chip);
 
   return (
-    <div className="bg-[#0d0d0f] pb-8 text-white">
-      <div className="flex gap-2 overflow-x-auto px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Chip active={chip === "all"} onClick={() => setChip("all")} icon={<Grid2x2 size={14} aria-hidden />}>All</Chip>
-        {data?.categories.map((category) => (
-          <Chip key={category.slug} active={chip === category.slug} onClick={() => setChip(category.slug)} icon={ICONS[category.slug]}>
-            {category.name}
-          </Chip>
-        ))}
-      </div>
+    <div
+      className={`bg-[#0d0d0f] pb-10 text-white transition-opacity duration-500 md:pb-16 ${shown ? "opacity-100" : "opacity-0"}`}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="mx-auto max-w-6xl px-4">
+        {error ? <p className="py-3 text-sm text-red-300">{error}</p> : null}
 
-      {error ? <p className="px-4 text-sm text-red-300">{error}</p> : null}
-
-      <section
-        className={`px-4 transition-opacity duration-500 ${shown ? "opacity-100" : "opacity-0"}`}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-      >
-        <h2 className="text-lg font-bold">Featured artworks</h2>
-        {data ? (
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {data.featured.slice(0, 4).map((work) => (
-              <article key={work.id} className="overflow-hidden rounded-2xl bg-white/5">
-                <Link to="/art/$id" params={{ id: String(work.id) }}>
-                  <img src={work.image_url} alt="" className="aspect-[3/4] w-full object-cover" />
-                  <span className="block px-3 py-2 text-sm font-semibold">{work.title}</span>
-                  <span className="block px-3 text-xs text-white/60">{work.creator_name} · {usd(work.price)}</span>
-                </Link>
-                <div className="px-3 pb-3">
-                  <BuyButton work={work} className="btn mt-2 w-full" />
+        {current ? (
+          <section className="pt-4">
+            <div className="overflow-hidden rounded-3xl md:grid md:min-h-[420px] md:grid-cols-2 md:bg-white/5">
+              <Link to="/art/$id" params={{ id: String(current.id) }} className="relative block min-h-0">
+                <img src={current.image_url} alt="" className="aspect-[5/4] w-full object-cover md:aspect-auto md:h-full" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent md:hidden" />
+                <div className="absolute inset-x-0 bottom-0 p-4 md:hidden">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/70">Featured</p>
+                  <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold">{current.title}<Check /></h1>
+                  <p className="mt-1 text-sm text-white/80">By {current.creator_name}</p>
                 </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-white/10" />
-            ))}
-          </div>
-        )}
-        <h2 className="mt-8 text-lg font-bold">Trending artists</h2>
-        {data ? (
-          <div className="mt-3 grid gap-2">
-            {data.artists.slice(0, 4).map((artist) => (
-              <Link key={artist.username} to="/artist/$slug" params={{ slug: artist.username }} className="rounded-2xl border border-white/10 px-4 py-3">
-                <span className="block font-semibold">{artist.display_name}</span>
-                <span className="block text-sm text-white/55">{artist.city || "United States"} · {artist.works} works</span>
               </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-3 grid gap-2">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="h-16 animate-pulse rounded-2xl bg-white/10" />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {current ? (
-        <section className="px-4">
-          <div className="relative overflow-hidden rounded-2xl">
-            <Link to="/art/$id" params={{ id: String(current.id) }} className="relative block">
-              <img src={current.image_url} alt="" className="aspect-[4/5] w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-4 pb-20">
-                <h1 className="flex items-center gap-2 text-3xl font-bold">
-                  {current.title}
-                  <Check />
-                </h1>
-                <p className="mt-1 flex items-center gap-1.5 text-sm text-white/90">
-                  By {current.creator_name}
-                  <Check />
-                </p>
+              <div className="hidden flex-col justify-center p-10 md:flex">
+                <p className="text-sm font-semibold text-white/50">Featured</p>
+                <h1 className="mt-2 flex items-center gap-2 text-4xl font-bold leading-tight">{current.title}<Check /></h1>
+                <p className="mt-3 text-white/70">By {current.creator_name}</p>
+                <p className="mt-5 text-2xl font-semibold">{usd(current.price)}</p>
+                <p className="mt-2 text-sm text-white/50">{eth(current.price)}</p>
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <BuyButton work={current} className="btn" />
+                  <Link to="/explore" search={floor} className="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold">Explore artworks</Link>
+                </div>
               </div>
+            </div>
+            <div className="mt-3 md:hidden">
+              <BuyButton work={current} className="btn w-full" />
+              <Link to="/explore" search={floor} className="mt-2 block rounded-full border border-white/20 px-5 py-3 text-center text-sm font-semibold">Explore artworks</Link>
+            </div>
+            <div className="mt-3 flex justify-center gap-1.5">
+              {slides.map((work, index) => (
+                <button
+                  key={work.id}
+                  type="button"
+                  aria-label={`Show ${work.title}`}
+                  onClick={() => setSlide(index)}
+                  className={`h-1.5 rounded-full ${index === slide ? "w-6 bg-white" : "w-4 bg-white/30"}`}
+                />
+              ))}
+            </div>
+          </section>
+        ) : (
+          <div className="mt-4 aspect-[5/4] animate-pulse rounded-3xl bg-white/5 md:aspect-[2/1]" />
+        )}
+
+        <div className="mt-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden">
+          <Chip active={chip === "all"} onClick={() => setChip("all")} icon={<Grid2x2 size={14} aria-hidden />}>All</Chip>
+          {data?.categories.map((category) => (
+            <Chip key={category.slug} active={chip === category.slug} onClick={() => setChip(category.slug)} icon={ICONS[category.slug]}>
+              {category.name}
+            </Chip>
+          ))}
+        </div>
+
+        <section className="mt-8">
+          <h2 className="text-lg font-bold md:text-2xl">Featured artworks</h2>
+          {data ? (
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
+              {data.featured.slice(0, 4).map((work) => (
+                <WorkTile key={work.id} work={work} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-white/10" />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-10">
+          <h2 className="text-lg font-bold md:text-2xl">Trending artists</h2>
+          {data ? (
+            <div className="mt-4 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-4 md:gap-5 md:overflow-visible [&::-webkit-scrollbar]:hidden">
+              {data.artists.slice(0, 4).map((artist) => (
+                <Link
+                  key={artist.username}
+                  to="/artist/$slug"
+                  params={{ slug: artist.username }}
+                  className="w-56 shrink-0 rounded-2xl border border-white/10 px-4 py-4 md:w-auto"
+                >
+                  <span className="block truncate font-semibold">{artist.display_name}</span>
+                  <span className="mt-1 block truncate text-sm text-white/55">{artist.city || "United States"} · {artist.works} works</span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-20 animate-pulse rounded-2xl bg-white/10" />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-10 grid gap-3 md:grid-cols-3">
+          {[
+            ["1", "Create an account", "Verify your email, then open a studio."],
+            ["2", "Mint or collect", "List a work, or buy one with your balance."],
+            ["3", "Earn royalties", "The artist is paid again on every resale."],
+          ].map(([step, title, copy]) => (
+            <div key={step} className="rounded-2xl border border-white/10 px-4 py-4">
+              <p className="text-sm font-semibold text-white/45">{step}</p>
+              <p className="mt-1 font-semibold">{title}</p>
+              <p className="mt-1 text-sm text-white/55">{copy}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="mt-10">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold md:text-2xl">Artworks</h2>
+            <Link to="/explore" search={{ ...floor, category: chip === "all" ? "" : chip }} className="text-sm font-semibold text-white/70">
+              Browse
             </Link>
-            <Link to="/explore" search={floor} className="btn absolute inset-x-4 bottom-4">Explore artworks</Link>
           </div>
-          <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
-            {slides.map((work, index) => (
-              <button
-                key={work.id}
-                type="button"
-                aria-label={`Show ${work.title}`}
-                onClick={() => setSlide(index)}
-                className={`h-1 rounded-full ${index === slide ? "w-6 bg-white" : "w-4 bg-white/30"}`}
-              />
+
+          <ul className="mt-3 md:hidden">
+            {rows.map((work) => (
+              <li key={work.id} className="flex items-center gap-3 border-t border-white/10 py-3">
+                <Link to="/art/$id" params={{ id: String(work.id) }} className="flex min-w-0 flex-1 items-center gap-3">
+                  <img src={work.image_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1 truncate font-semibold">{work.title}<Check /></span>
+                    <span className="block truncate text-sm text-white/55">{work.creator_name}</span>
+                    <span className="mt-0.5 block text-sm font-semibold">{usd(work.price)}</span>
+                  </span>
+                </Link>
+                <BuyButton work={work} className="btn shrink-0 px-4 text-sm" />
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-4 hidden gap-5 md:grid md:grid-cols-3 lg:grid-cols-4">
+            {rows.map((work) => (
+              <WorkTile key={work.id} work={work} />
             ))}
           </div>
         </section>
-      ) : (
-        <div className="mx-4 aspect-[4/5] animate-pulse rounded-2xl bg-white/5" />
-      )}
 
-      <div className="mt-5 flex items-center justify-between px-4">
-        <p className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold">Artworks</p>
-        <Link to="/explore" search={{ ...floor, category: chip === "all" ? "" : chip }} className="rounded-full border border-white/15 px-4 py-1.5 text-sm font-semibold">
-          Browse
-        </Link>
-      </div>
-
-      <div className="mt-4 flex px-4 text-[11px] font-semibold tracking-[0.14em] text-white/45">
-        <span>COLLECTION</span>
-        <span className="ml-auto">FLOOR</span>
-      </div>
-      <ul className="mt-2">
-        {rows.map((work) => (
-          <li key={work.id}>
-            <Link to="/art/$id" params={{ id: String(work.id) }} className="flex items-center gap-3 px-4 py-2.5">
-              <img src={work.image_url} alt="" className="h-11 w-11 rounded-lg object-cover" />
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1 truncate font-semibold">
-                  {work.title}
-                  <Check />
-                </span>
-                <span className="block truncate text-sm text-white/55">{work.creator_name}</span>
-              </span>
-              <span className="text-right">
-                <span className="block text-sm font-semibold">{usd(work.price)}</span>
-                <span className="block text-xs text-white/50">{work.price ? `${Number(work.price).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETH` : "Unlisted"}</span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mx-4 mt-6 flex items-center justify-between rounded-full border border-white/10 px-3 py-2 text-sm">
-        <span>{formatUsd(ethUsdRate())}</span>
-        <button type="button" onClick={toggleTheme} className="rounded-full px-3 py-1 text-white/80" aria-label="Toggle color theme">
-          Theme
-        </button>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-black">USD</span>
+        <p className="mt-10 text-center text-sm text-white/45">Reference rate · 1 ETH ≈ {formatUsd(ethUsdRate())}</p>
       </div>
     </div>
+  );
+}
+
+function WorkTile({ work }: { work: Card }) {
+  return (
+    <article className="overflow-hidden rounded-2xl bg-white/5">
+      <Link to="/art/$id" params={{ id: String(work.id) }}>
+        <img src={work.image_url} alt="" className="aspect-[3/4] w-full object-cover" />
+        <span className="block truncate px-3 pt-3 text-sm font-semibold">{work.title}</span>
+        <span className="block truncate px-3 text-xs text-white/60">{work.creator_name}</span>
+        <span className="block px-3 pb-1 text-sm font-semibold">{usd(work.price)}</span>
+      </Link>
+      <div className="px-3 pb-3">
+        <BuyButton work={work} className="btn mt-2 w-full" />
+      </div>
+    </article>
   );
 }
 
@@ -250,4 +281,11 @@ function usd(price: string | null): string {
   const n = Number(price);
   if (!Number.isFinite(n)) return "—";
   return formatUsd(n * ethUsdRate());
+}
+
+function eth(price: string | null): string {
+  if (!price) return "";
+  const n = Number(price);
+  if (!Number.isFinite(n)) return "";
+  return `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETH`;
 }

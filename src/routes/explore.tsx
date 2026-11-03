@@ -51,8 +51,8 @@ function ExplorePage() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <p className="kicker">The floor</p>
       <h1 className="mt-2 font-serif text-4xl">Find a work</h1>
-      <div className="mt-6 grid gap-3 md:grid-cols-6">
-        <label className="md:col-span-2">
+      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-6">
+        <label className="col-span-2">
           <span className="label">Search</span>
           <input className="field" value={search.q} onChange={(event) => set("q", event.target.value)} />
         </label>
@@ -108,7 +108,7 @@ function ExplorePage() {
             <p className="text-muted">Nothing matches those filters.</p>
           )
         ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-raised" />
             ))}

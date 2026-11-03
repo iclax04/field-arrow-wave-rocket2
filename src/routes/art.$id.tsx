@@ -88,7 +88,7 @@ function ArtPage() {
   if (!work) return <p className="mx-auto max-w-6xl px-4 py-16">This work is not on the floor.</p>;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:grid-cols-12">
+    <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-28 pt-4 md:grid-cols-12 md:pb-8 md:pt-8">
       <div className="md:col-span-7">
         {work.media_kind === "video" && work.media_url ? (
           <video src={work.media_url} poster={work.image_url} controls className="w-full rounded-2xl bg-ink" />
@@ -97,7 +97,7 @@ function ArtPage() {
         )}
         {work.media_kind === "audio" && work.media_url ? <audio src={work.media_url} controls className="mt-4 w-full" /> : null}
       </div>
-      <div className="md:col-span-5">
+      <div className="md:sticky md:top-20 md:col-span-5 md:self-start">
         <p className="kicker">#{work.token_id} · {work.category_slug}</p>
         <h1 className="mt-2 font-serif text-4xl">{work.title}</h1>
         <p className="mt-3 text-muted">{work.description}</p>
@@ -119,12 +119,12 @@ function ArtPage() {
               <p className="mt-1 font-serif text-4xl tabular-nums">{formatEth(work.price)}</p>
               {!mine ? (
                 me ? (
-                  <button type="button" className="btn mt-4 w-full" onClick={() => setConfirm(true)}>Buy</button>
+                  <button type="button" className="btn mt-4 hidden w-full md:inline-flex" onClick={() => setConfirm(true)}>Buy</button>
                 ) : (
                   <Link
                     to="/login"
                     search={{ mode: "in" }}
-                    className="btn mt-4 w-full"
+                    className="btn mt-4 hidden w-full md:inline-flex"
                     onClick={() => {
                       sessionStorage.setItem("agora-next", `/art/${work.id}`);
                       sessionStorage.setItem("agora-buy", String(work.id));
@@ -254,6 +254,28 @@ function ArtPage() {
           ) : null}
         </section>
       </div>
+      {!mine && work.listing_kind === "fixed" && work.price ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+          <div className="flex items-center gap-3">
+            <p className="min-w-0 flex-1 text-sm font-semibold tabular-nums">{formatEth(work.price)}</p>
+            {me ? (
+              <button type="button" className="btn shrink-0" onClick={() => setConfirm(true)}>Buy</button>
+            ) : (
+              <Link
+                to="/login"
+                search={{ mode: "in" }}
+                className="btn shrink-0"
+                onClick={() => {
+                  sessionStorage.setItem("agora-next", `/art/${work.id}`);
+                  sessionStorage.setItem("agora-buy", String(work.id));
+                }}
+              >
+                Buy
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : null}
       {confirm && work.price ? (
         <Modal title="Confirm purchase" onClose={() => setConfirm(false)}>
           <p>Pay {formatEth(work.price)} for {work.title} from your available balance.</p>
