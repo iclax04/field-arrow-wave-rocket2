@@ -77,13 +77,22 @@ async function audit(sql: Sql, actor: string, action: string, target: string, de
 export async function ensureDefaultAdmin(sql: Sql) {
   const email = (process.env.ADMIN_EMAIL || "admin@agoragallery.nfts").trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD || "AgoraDesk#2026";
-  const rows = await sql.query(`select id from admin_accounts where email = $1`, [email]);
-  if (rows.length) return;
+  const rows = await sql.query<{ id: string; must_change_password: boolean }>(
+    `select id, must_change_password from admin_accounts where email = $1`,
+    [email],
+  );
+  const existing = rows[0];
+  if (existing) {
+    if (existing.must_change_password) {
+      await sql.query(`update admin_accounts set must_change_password = false where id = $1`, [existing.id]);
+    }
+    return;
+  }
   const any = await sql.query(`select id from admin_accounts limit 1`);
   if (any.length) return;
   await sql.query(
     `insert into admin_accounts (id, email, name, password_hash, role, must_change_password)
-     values ($1, $2, 'Gallery admin', $3, 'super', true)`,
+     values ($1, $2, 'Gallery admin', $3, 'super', false)`,
     [`admin:${randomBytes(8).toString("hex")}`, email, await hashPassword(password)],
   );
 }

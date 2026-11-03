@@ -12,6 +12,7 @@ type MarketContextValue = {
   ready: boolean;
   refresh: () => void;
   theme: ThemeName;
+  setTheme: (next: ThemeName) => void;
   toggleTheme: () => void;
   timeZone: DisplayZone;
   setTimeZone: (zone: string) => void;
@@ -51,6 +52,11 @@ export function MarketProvider({ children }: { children: ReactNode }) {
   const toggleTheme = useCallback(() => {
     const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
     const next = current === "dark" ? "light" : "dark";
+    applyTheme(next);
+    setTheme(next);
+  }, []);
+
+  const chooseTheme = useCallback((next: ThemeName) => {
     applyTheme(next);
     setTheme(next);
   }, []);
@@ -104,7 +110,7 @@ export function MarketProvider({ children }: { children: ReactNode }) {
   }, [refresh, userId]);
 
   return (
-    <MarketContext.Provider value={{ me, authPending: isPending, ready, refresh, theme, toggleTheme, timeZone, setTimeZone }}>
+    <MarketContext.Provider value={{ me, authPending: isPending, ready, refresh, theme, setTheme: chooseTheme, toggleTheme, timeZone, setTimeZone }}>
       {children}
       <Toaster theme={theme} position="top-center" />
     </MarketContext.Provider>

@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { SignedIn } from "@/lib/auth/gates";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { displayZones, ethUsdRate, formatUsd } from "@/lib/format";
 import { useMarket } from "./provider";
 import { getHome } from "@/lib/market.functions";
 import { SessionWatch } from "./session-watch";
@@ -14,7 +13,7 @@ import { BackButton } from "./back-button";
 const floor = { q: "", category: "", kind: "", min: "", max: "", sort: "newest" as const, artist: "" };
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { me, timeZone, setTimeZone } = useMarket();
+  const { me } = useMarket();
   const { user } = useCurrentUserState();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -53,8 +52,38 @@ export function Shell({ children }: { children: ReactNode }) {
   const bar = home ? "border-white/15 bg-[#16181d] text-white" : "border-line bg-bg text-fg";
 
   return (
-    <div className={home || studio ? "min-h-screen bg-[#0d0d0f] text-white" : "min-h-screen bg-bg text-fg"}>
-      {showPublic ? (
+    <div className={home || studio ? "min-h-screen bg-black text-white" : "min-h-screen bg-bg text-fg"}>
+      {showPublic && home ? (
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-black pt-[env(safe-area-inset-top)] text-white">
+          <div className="mx-auto flex h-[52px] max-w-6xl items-center gap-1 px-1">
+            <button
+              type="button"
+              className="grid h-11 w-11 place-items-center"
+              aria-label={menu ? "Close menu" : "Open menu"}
+              aria-expanded={menu}
+              onClick={() => setMenu((value) => !value)}
+            >
+              {menu ? <X size={22} aria-hidden /> : <Menu size={22} strokeWidth={2.25} aria-hidden />}
+            </button>
+            <Link to="/" className="flex min-w-0 items-center gap-2 text-[1.35rem] font-bold tracking-[-0.03em]">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-[#2081e2] text-[15px] font-bold text-white" aria-hidden>A</span>
+              Agora
+            </Link>
+            <button
+              type="button"
+              className="ml-auto grid h-11 w-11 place-items-center"
+              aria-label="Search"
+              onClick={() => setMenu(true)}
+            >
+              <Search size={22} strokeWidth={2.25} aria-hidden />
+            </button>
+            <Link to="/login" search={{ mode: "in" }} className="mr-2 rounded-full bg-[#2081e2] px-4 py-[7px] text-[15px] font-semibold leading-none text-white">
+              Sign in
+            </Link>
+          </div>
+        </header>
+      ) : null}
+      {showPublic && !home ? (
       <header className={`sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)] ${bar}`}>
         <div className={`mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 md:hidden ${home ? "text-white" : ""}`}>
           <button
@@ -114,7 +143,7 @@ export function Shell({ children }: { children: ReactNode }) {
       ) : null}
       {menu && !studio
         ? createPortal(
-            <div className={`fixed inset-0 z-[80] flex h-dvh flex-col pt-[env(safe-area-inset-top)] md:hidden ${home ? "bg-[#0d0d0f] text-white" : "bg-bg text-fg"}`}>
+            <div className={`fixed inset-0 z-[80] flex h-dvh flex-col pt-[env(safe-area-inset-top)] ${home ? "bg-[#0d0d0f] text-white" : "bg-bg text-fg md:hidden"}`}>
               <div className="flex h-16 items-center justify-between border-b border-line px-4">
                 <p className="text-base font-extrabold">Agora Gallery NFTs</p>
                 <button
@@ -135,6 +164,12 @@ export function Shell({ children }: { children: ReactNode }) {
                   <NavLink to="/artists" active={pathname.startsWith("/artist")}>Artists</NavLink>
                 </nav>
                 <div className="mt-6 grid gap-2">
+                  {!user ? (
+                    <>
+                      <Link to="/login" search={{ mode: "in" }} className="btn" onClick={() => setMenu(false)}>Sign in</Link>
+                      <Link to="/create-account" className="btn-ghost" onClick={() => setMenu(false)}>Create account</Link>
+                    </>
+                  ) : null}
                   <SignedIn>
                     <Link to="/dashboard" className="btn-ghost">Dashboard</Link>
                     <button type="button" className="btn-ghost" onClick={() => void signOut("/")}>Sign out</button>
@@ -146,7 +181,7 @@ export function Shell({ children }: { children: ReactNode }) {
           )
         : null}
       <main>
-        {banner && !pathname.startsWith("/admin") ? <p className="bg-[#2563eb] px-4 py-2 text-center text-sm text-white">{banner}</p> : null}
+        {banner && !home && !pathname.startsWith("/admin") ? <p className="bg-[#2563eb] px-4 py-2 text-center text-sm text-white">{banner}</p> : null}
         {pathname !== "/" && !studio ? (
           <div className="mx-auto max-w-6xl px-3 pt-2">
             <BackButton />
@@ -154,7 +189,6 @@ export function Shell({ children }: { children: ReactNode }) {
         ) : null}
         {children}
       </main>
-      {studio ? null : <Footer timeZone={timeZone} setTimeZone={setTimeZone} dark={home} />}
       <CookieNotice lift={studio} />
       <SessionWatch />
     </div>
@@ -238,47 +272,6 @@ function AccountButton({
         </div>
       ) : null}
     </div>
-  );
-}
-
-function Footer({ timeZone, setTimeZone, dark }: { timeZone: string; setTimeZone: (zone: string) => void; dark?: boolean }) {
-  return (
-    <footer className={dark ? "mt-8 border-t border-white/10 bg-[#0d0d0f] text-white" : "mt-16 border-t border-line bg-bg"}>
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4">
-        <div>
-          <p className="font-extrabold">Agora Gallery NFTs</p>
-          <p className="mt-2 text-sm text-muted">A marketplace for original digital art. Prices are shown in ETH with an estimated US dollar value.</p>
-          <p className="mt-3 text-sm text-muted">Reference rate: 1 ETH ≈ {formatUsd(ethUsdRate())}. This is not a live quote.</p>
-        </div>
-        <div className="grid gap-2 text-sm">
-          <p className="font-semibold">Company</p>
-          <Link to="/legal/$page" params={{ page: "terms" }}>Terms of Service</Link>
-          <Link to="/legal/$page" params={{ page: "privacy" }}>Privacy Policy</Link>
-          <Link to="/legal/$page" params={{ page: "cookies" }}>Cookie Policy</Link>
-          <Link to="/legal/$page" params={{ page: "fees" }}>Fees and Royalties</Link>
-        </div>
-        <div className="grid gap-2 text-sm">
-          <p className="font-semibold">Support</p>
-          <Link to="/help">Help Center</Link>
-          <Link to="/contact">Contact Us</Link>
-          <a href="mailto:support@agoragallery.com">support@agoragallery.com</a>
-          <a href="https://x.com" rel="noreferrer">X</a>
-          <a href="https://www.instagram.com" rel="noreferrer">Instagram</a>
-        </div>
-        <label className="text-sm">
-          <span className="font-semibold">Time zone</span>
-          <select className="field mt-2" value={timeZone} onChange={(event) => setTimeZone(event.target.value)} aria-label="Time zone">
-            {displayZones().map((zone) => (
-              <option key={zone} value={zone}>{zone.replace("America/", "").replace("Pacific/", "").replaceAll("_", " ")}</option>
-            ))}
-          </select>
-          <p className="mt-2 text-muted">Times use a 12-hour clock. The default is US Eastern.</p>
-        </label>
-      </div>
-      <div className="border-t border-line">
-        <p className="mx-auto max-w-6xl px-4 py-4 text-sm text-muted">© 2026 Agora Gallery NFTs. All rights reserved.</p>
-      </div>
-    </footer>
   );
 }
 

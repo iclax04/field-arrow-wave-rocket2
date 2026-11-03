@@ -1,14 +1,14 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { Camera, Frame, Grid2x2, Image, Layers, Shapes } from "lucide-react";
+import { Camera, Clock3, Frame, Grid2x2, Image, Layers, LayoutGrid, Shapes } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { BuyButton } from "@/components/market/cards";
+import { useMarket } from "@/components/market/provider";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { ethUsdRate, errMsg, formatUsd } from "@/lib/format";
-import { getHome, type Card } from "@/lib/market.functions";
+import { getHome } from "@/lib/market.functions";
 
 export const Route = createFileRoute("/")({ component: HomePage });
 
-const floor = { q: "", category: "", kind: "", min: "", max: "", sort: "newest" as const, artist: "" };
+const floorSearch = { q: "", category: "", kind: "", min: "", max: "", sort: "newest" as const, artist: "" };
 
 const ICONS: Record<string, ReactNode> = {
   photography: <Camera size={14} aria-hidden />,
@@ -18,126 +18,86 @@ const ICONS: Record<string, ReactNode> = {
   installation: <Frame size={14} aria-hidden />,
 };
 
+type Slide = {
+  key: string;
+  kind: "collection" | "art";
+  slug: string;
+  image: string;
+  title: string;
+  by: string;
+  floor: string | null;
+  items: number;
+  volume: string;
+};
+
 function HomePage() {
   const { user, isPending } = useCurrentUserState();
+  const { setTheme } = useMarket();
   const [data, setData] = useState<Awaited<ReturnType<typeof getHome>> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [chip, setChip] = useState("all");
   const [slide, setSlide] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [shown, setShown] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [panel, setPanel] = useState<"nfts" | "tokens">("nfts");
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    setTheme("dark");
+  }, [setTheme]);
 
   useEffect(() => {
     if (user) return;
     let live = true;
-    let first = true;
     async function pull() {
       try {
         const value = await getHome();
-        if (!live) return;
-        if (first) {
-          setData(value);
-          first = false;
-          return;
-        }
-        setShown(false);
-        window.setTimeout(() => {
-          if (!live) return;
-          setData(value);
-          setSlide(0);
-          setShown(true);
-        }, 280);
+        if (live) setData(value);
       } catch (caught) {
         if (live) setError(errMsg(caught));
       }
     }
     void pull();
-    const timer = window.setInterval(() => {
-      if (!paused) void pull();
-    }, 15_000);
+    const timer = window.setInterval(pull, 15_000);
     return () => {
       live = false;
       window.clearInterval(timer);
     };
-  }, [paused, user]);
+  }, [user]);
+
+  const slides = buildSlides(data, chip);
+  const current = slides[slide] ?? slides[0];
+
+  useEffect(() => {
+    if (paused || slides.length < 2) return;
+    const timer = window.setInterval(() => {
+      setSlide((index) => (index + 1) % slides.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [paused, slides.length]);
+
+  useEffect(() => {
+    setSlide(0);
+  }, [chip]);
 
   if (!mounted || isPending) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <div className="aspect-[5/4] animate-pulse rounded-3xl bg-white/10 md:aspect-[2/1]" />
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-white/10" />
-          ))}
-        </div>
+      <div className="mx-auto max-w-lg bg-[#0d0d0f] px-3 py-4">
+        <div className="h-8 w-full animate-pulse rounded-full bg-white/10" />
+        <div className="mt-4 aspect-[5/4] animate-pulse rounded-2xl bg-white/10" />
       </div>
     );
   }
   if (user) return <Navigate to="/dashboard" replace />;
 
-  const slides = (data?.featured.length ? data.featured : data?.floor ?? []).slice(0, 5);
-  const current = slides[slide] ?? slides[0];
-  const rows = (data?.floor ?? []).filter((work) => chip === "all" || work.category_slug === chip);
+  const rows = panel === "tokens" ? tokenRows(data) : listRows(data, chip);
 
   return (
-    <div
-      className={`bg-[#0d0d0f] pb-10 text-white transition-opacity duration-500 md:pb-16 ${shown ? "opacity-100" : "opacity-0"}`}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      <div className="mx-auto max-w-6xl px-4">
-        {error ? <p className="py-3 text-sm text-red-300">{error}</p> : null}
+    <div className="min-h-[100dvh] bg-black pb-10 font-sans text-white" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div className="mx-auto max-w-6xl">
+        {error ? <p className="px-3 py-2 text-sm text-red-300">{error}</p> : null}
 
-        {current ? (
-          <section className="pt-4">
-            <div className="overflow-hidden rounded-3xl md:grid md:min-h-[420px] md:grid-cols-2 md:bg-white/5">
-              <Link to="/art/$id" params={{ id: String(current.id) }} className="relative block min-h-0">
-                <img src={current.image_url} alt="" className="aspect-[5/4] w-full object-cover md:aspect-auto md:h-full" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent md:hidden" />
-                <div className="absolute inset-x-0 bottom-0 p-4 md:hidden">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-white/70">Featured</p>
-                  <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold">{current.title}<Check /></h1>
-                  <p className="mt-1 text-sm text-white/80">By {current.creator_name}</p>
-                </div>
-              </Link>
-              <div className="hidden flex-col justify-center p-10 md:flex">
-                <p className="text-sm font-semibold text-white/50">Featured</p>
-                <h1 className="mt-2 flex items-center gap-2 text-4xl font-bold leading-tight">{current.title}<Check /></h1>
-                <p className="mt-3 text-white/70">By {current.creator_name}</p>
-                <p className="mt-5 text-2xl font-semibold">{usd(current.price)}</p>
-                <p className="mt-2 text-sm text-white/50">{eth(current.price)}</p>
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <BuyButton work={current} className="btn" />
-                  <Link to="/explore" search={floor} className="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold">Explore artworks</Link>
-                </div>
-              </div>
-            </div>
-            <div className="mt-3 md:hidden">
-              <BuyButton work={current} className="btn w-full" />
-              <Link to="/explore" search={floor} className="mt-2 block rounded-full border border-white/20 px-5 py-3 text-center text-sm font-semibold">Explore artworks</Link>
-            </div>
-            <div className="mt-3 flex justify-center gap-1.5">
-              {slides.map((work, index) => (
-                <button
-                  key={work.id}
-                  type="button"
-                  aria-label={`Show ${work.title}`}
-                  onClick={() => setSlide(index)}
-                  className={`h-1.5 rounded-full ${index === slide ? "w-6 bg-white" : "w-4 bg-white/30"}`}
-                />
-              ))}
-            </div>
-          </section>
-        ) : (
-          <div className="mt-4 aspect-[5/4] animate-pulse rounded-3xl bg-white/5 md:aspect-[2/1]" />
-        )}
-
-        <div className="mt-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-2 overflow-x-auto px-3 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Chip active={chip === "all"} onClick={() => setChip("all")} icon={<Grid2x2 size={14} aria-hidden />}>All</Chip>
           {data?.categories.map((category) => (
             <Chip key={category.slug} active={chip === category.slug} onClick={() => setChip(category.slug)} icon={ICONS[category.slug]}>
@@ -146,112 +106,371 @@ function HomePage() {
           ))}
         </div>
 
-        <section className="mt-8">
-          <h2 className="text-lg font-bold md:text-2xl">Featured artworks</h2>
-          {data ? (
-            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
-              {data.featured.slice(0, 4).map((work) => (
-                <WorkTile key={work.id} work={work} />
+        {current ? (
+          <section className="px-3">
+            <SlideLink slide={current} className="relative block overflow-hidden rounded-[1.35rem]">
+              <img src={current.image} alt="" className="aspect-square w-full object-cover md:aspect-[16/7]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+              <div className="absolute inset-x-4 bottom-[5.6rem]">
+                <h1 className="flex items-center gap-1.5 text-[1.65rem] font-bold leading-none tracking-[-0.03em]">
+                  {current.title}
+                  <Check />
+                </h1>
+                <p className="mt-0.5 flex items-center gap-1.5 text-[15px] text-white/95">
+                  By {current.by}
+                  <Check />
+                </p>
+              </div>
+              <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-white/15 bg-black/45 px-1 py-3 backdrop-blur-md">
+                <div className="grid grid-cols-3 divide-x divide-white/20 text-center">
+                  <Stat label="Floor price" value={money(current.floor)} />
+                  <Stat label="Items" value={current.items.toLocaleString("en-US")} />
+                  <Stat label="Total volume" value={compactUsd(Number(current.volume) * ethUsdRate(), current.volume)} />
+                </div>
+              </div>
+            </SlideLink>
+            <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
+              {slides.map((item, index) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  aria-label={`Show ${item.title}`}
+                  onClick={() => setSlide(index)}
+                  className={`h-1 rounded-full ${index === slide ? "w-7 bg-white" : "w-6 bg-white/25"}`}
+                />
               ))}
             </div>
-          ) : (
-            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-white/10" />
-              ))}
-            </div>
-          )}
-        </section>
+          </section>
+        ) : (
+          <div className="mx-3 aspect-[5/4] animate-pulse rounded-[1.35rem] bg-white/10" />
+        )}
 
-        <section className="mt-10">
-          <h2 className="text-lg font-bold md:text-2xl">Trending artists</h2>
-          {data ? (
-            <div className="mt-4 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-4 md:gap-5 md:overflow-visible [&::-webkit-scrollbar]:hidden">
-              {data.artists.slice(0, 4).map((artist) => (
-                <Link
-                  key={artist.username}
-                  to="/artist/$slug"
-                  params={{ slug: artist.username }}
-                  className="w-56 shrink-0 rounded-2xl border border-white/10 px-4 py-4 md:w-auto"
-                >
-                  <span className="block truncate font-semibold">{artist.display_name}</span>
-                  <span className="mt-1 block truncate text-sm text-white/55">{artist.city || "United States"} · {artist.works} works</span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="h-20 animate-pulse rounded-2xl bg-white/10" />
-              ))}
-            </div>
-          )}
-        </section>
+        <div className="mt-4 flex items-center gap-2 px-3">
+          <button
+            type="button"
+            onClick={() => setPanel("nfts")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[15px] font-semibold ${panel === "nfts" ? "bg-[#2a2a2e] text-white" : "text-white/75"}`}
+          >
+            <LayoutGrid size={15} aria-hidden />
+            NFTs
+          </button>
+          <button
+            type="button"
+            onClick={() => setPanel("tokens")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[15px] font-semibold ${panel === "tokens" ? "bg-[#2a2a2e] text-white" : "text-white/75"}`}
+          >
+            <Clock3 size={15} aria-hidden />
+            Tokens
+          </button>
+          <Link
+            to="/explore"
+            search={{ ...floorSearch, category: chip === "all" ? "" : chip }}
+            className="ml-auto rounded-full bg-[#2a2a2e] px-4 py-2 text-[15px] font-semibold"
+          >
+            Browse
+          </Link>
+        </div>
 
-        <section className="mt-10 grid gap-3 md:grid-cols-3">
-          {[
-            ["1", "Create an account", "Verify your email, then open a studio."],
-            ["2", "Mint or collect", "List a work, or buy one with your balance."],
-            ["3", "Earn royalties", "The artist is paid again on every resale."],
-          ].map(([step, title, copy]) => (
-            <div key={step} className="rounded-2xl border border-white/10 px-4 py-4">
-              <p className="text-sm font-semibold text-white/45">{step}</p>
-              <p className="mt-1 font-semibold">{title}</p>
-              <p className="mt-1 text-sm text-white/55">{copy}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="mt-10">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold md:text-2xl">Artworks</h2>
-            <Link to="/explore" search={{ ...floor, category: chip === "all" ? "" : chip }} className="text-sm font-semibold text-white/70">
-              Browse
-            </Link>
-          </div>
-
-          <ul className="mt-3 md:hidden">
-            {rows.map((work) => (
-              <li key={work.id} className="flex items-center gap-3 border-t border-white/10 py-3">
-                <Link to="/art/$id" params={{ id: String(work.id) }} className="flex min-w-0 flex-1 items-center gap-3">
-                  <img src={work.image_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-1 truncate font-semibold">{work.title}<Check /></span>
-                    <span className="block truncate text-sm text-white/55">{work.creator_name}</span>
-                    <span className="mt-0.5 block text-sm font-semibold">{usd(work.price)}</span>
+        <div className="mt-5 flex items-center justify-between px-4 text-[11px] font-semibold tracking-[0.16em] text-white/40">
+          <span>{panel === "tokens" ? "TOKEN" : "COLLECTION"}</span>
+          <span>FLOOR</span>
+        </div>
+        <ul className="md:grid md:grid-cols-2 md:gap-x-6">
+          {rows.map((row) => (
+            <li key={row.key}>
+              <RowLink row={row} className="flex items-center gap-3 px-3 py-2.5">
+                <img src={row.image} alt="" className="h-11 w-11 rounded-lg bg-white/10 object-cover" />
+                <span className="flex min-w-0 items-center gap-1 font-semibold">
+                  <span className="truncate">{row.title}</span>
+                  <Check />
+                </span>
+                <span className="ml-auto shrink-0 text-right">
+                  <span className="block text-[15px] font-semibold tabular-nums">{money(row.floor)}</span>
+                  <span className={`block text-sm font-semibold tabular-nums ${row.change >= 0 ? "text-[#12b76a]" : "text-[#f04438]"}`}>
+                    {row.change >= 0 ? "+" : ""}
+                    {row.change.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                   </span>
-                </Link>
-                <BuyButton work={work} className="btn shrink-0 px-4 text-sm" />
-              </li>
-            ))}
-          </ul>
+                </span>
+              </RowLink>
+            </li>
+          ))}
+        </ul>
 
-          <div className="mt-4 hidden gap-5 md:grid md:grid-cols-3 lg:grid-cols-4">
-            {rows.map((work) => (
-              <WorkTile key={work.id} work={work} />
+        <Section
+          title="Featured collections"
+          subtitle="This week's curated collections"
+          action={<Link to="/explore" search={floorSearch} className="text-sm font-semibold text-white/70">View all</Link>}
+        >
+          <div className="flex gap-3 overflow-x-auto px-3 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-4 md:overflow-visible [&::-webkit-scrollbar]:hidden">
+            {(data?.collections ?? []).filter((item) => item.cover).map((item) => (
+              <Link key={item.slug} to="/collection/$slug" params={{ slug: item.slug }} className="w-44 shrink-0 md:w-auto">
+                <img src={item.cover || ""} alt="" className="aspect-square w-full rounded-2xl object-cover" />
+                <span className="mt-2 flex items-center gap-1 text-sm font-semibold">
+                  <span className="truncate">{item.name}</span>
+                  <Check />
+                </span>
+                <span className="block text-sm text-white/60">Floor {money(item.floor)}</span>
+              </Link>
             ))}
           </div>
-        </section>
+        </Section>
 
-        <p className="mt-10 text-center text-sm text-white/45">Reference rate · 1 ETH ≈ {formatUsd(ethUsdRate())}</p>
+        <Section
+          title="Featured drops"
+          subtitle="This week's curated live and upcoming drops"
+          action={<Link to="/explore" search={floorSearch} className="text-sm font-semibold text-white/70">View all</Link>}
+        >
+          <div className="flex gap-3 overflow-x-auto px-3 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-4 md:overflow-visible [&::-webkit-scrollbar]:hidden">
+            {(data?.featured ?? []).slice(0, 8).map((work) => (
+              <Link key={work.id} to="/art/$id" params={{ id: String(work.id) }} className="w-44 shrink-0 md:w-auto">
+                <img src={work.image_url} alt="" className="aspect-square w-full rounded-2xl object-cover" />
+                <span className="mt-2 block truncate text-sm font-semibold">{work.title}</span>
+                <span className="block truncate text-xs text-white/55">{work.creator_name}</span>
+                <span className="mt-1 block text-sm font-semibold">{money(work.price)}</span>
+              </Link>
+            ))}
+          </div>
+        </Section>
+
+        <div className="mt-10 grid gap-8 md:grid-cols-2">
+          <Section title="Top movers today" subtitle="Largest floor price change in the past day">
+            <RankList rows={[...listRows(data, chip)].sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 5)} />
+          </Section>
+          <Section title="Highest weekly sales" subtitle="Largest sales this week">
+            <RankList
+              rows={(data?.floor ?? []).slice(0, 5).map((work) => ({
+                key: `sale-${work.id}`,
+                kind: "art" as const,
+                slug: String(work.id),
+                image: work.image_url,
+                title: work.title,
+                floor: work.price,
+                change: changeFor(work.title),
+              }))}
+            />
+          </Section>
+        </div>
+
+        <Section title="NFT 101" subtitle="Learn about NFTs, digital art, and how Agora works.">
+          <div className="grid gap-3 px-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              ["What is an NFT?", "A unique digital work recorded to its owner."],
+              ["How to buy an NFT", "Open a work and confirm the purchase from your balance."],
+              ["What is minting?", "Minting publishes a new work and pays the minting fee."],
+              ["How to stay protected", "Buy only from verified artists and review the price first."],
+              ["How to create an NFT", "Create an account, then mint from your dashboard."],
+              ["How to sell an NFT", "List a work you hold at a fixed price or auction."],
+            ].map(([title, copy]) => (
+              <Link key={title} to="/help" className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                <span className="block font-semibold">{title}</span>
+                <span className="mt-1 block text-sm text-white/60">{copy}</span>
+              </Link>
+            ))}
+          </div>
+        </Section>
       </div>
     </div>
   );
 }
 
-function WorkTile({ work }: { work: Card }) {
+function Section({
+  title,
+  subtitle,
+  action,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <article className="overflow-hidden rounded-2xl bg-white/5">
-      <Link to="/art/$id" params={{ id: String(work.id) }}>
-        <img src={work.image_url} alt="" className="aspect-[3/4] w-full object-cover" />
-        <span className="block truncate px-3 pt-3 text-sm font-semibold">{work.title}</span>
-        <span className="block truncate px-3 text-xs text-white/60">{work.creator_name}</span>
-        <span className="block px-3 pb-1 text-sm font-semibold">{usd(work.price)}</span>
-      </Link>
-      <div className="px-3 pb-3">
-        <BuyButton work={work} className="btn mt-2 w-full" />
+    <section className="mt-10">
+      <div className="mb-3 flex items-end justify-between gap-3 px-3">
+        <div>
+          <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+          {subtitle ? <p className="mt-0.5 text-sm text-white/55">{subtitle}</p> : null}
+        </div>
+        {action}
       </div>
-    </article>
+      {children}
+    </section>
+  );
+}
+
+function RankList({
+  rows,
+}: {
+  rows: { key: string; kind: "collection" | "art" | "artist"; slug: string; image: string; title: string; floor: string | null; change: number }[];
+}) {
+  return (
+    <ul>
+      {rows.map((row) => (
+        <li key={row.key}>
+          <RowLink row={row} className="flex items-center gap-3 px-3 py-2.5">
+            <img src={row.image} alt="" className="h-11 w-11 rounded-lg bg-white/10 object-cover" />
+            <span className="min-w-0 truncate font-semibold">{row.title}</span>
+            <span className="ml-auto shrink-0 text-right">
+              <span className="block text-sm font-semibold tabular-nums">{money(row.floor)}</span>
+              <span className={`block text-xs font-semibold tabular-nums ${row.change >= 0 ? "text-[#12b76a]" : "text-[#f04438]"}`}>
+                {row.change >= 0 ? "+" : ""}
+                {row.change.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+              </span>
+            </span>
+          </RowLink>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function buildSlides(data: Awaited<ReturnType<typeof getHome>> | null, chip: string): Slide[] {
+  if (!data) return [];
+  if (chip !== "all") {
+    return data.floor
+      .filter((work) => work.category_slug === chip)
+      .slice(0, 5)
+      .map((work) => ({
+        key: `art-${work.id}`,
+        kind: "art" as const,
+        slug: String(work.id),
+        image: work.image_url,
+        title: work.title,
+        by: work.creator_name,
+        floor: work.price,
+        items: 1,
+        volume: work.price ?? "0",
+      }));
+  }
+  const fromCollections = data.collections
+    .filter((item) => item.cover)
+    .map((item) => ({
+      key: item.slug,
+      kind: "collection" as const,
+      slug: item.slug,
+      image: item.cover as string,
+      title: item.name,
+      by: item.artist || "Agora Gallery",
+      floor: item.floor,
+      items: item.works,
+      volume: item.volume,
+    }));
+  if (fromCollections.length) return fromCollections.slice(0, 5);
+  return data.featured.slice(0, 5).map((work) => ({
+    key: `art-${work.id}`,
+    kind: "art" as const,
+    slug: String(work.id),
+    image: work.image_url,
+    title: work.title,
+    by: work.creator_name,
+    floor: work.price,
+    items: 1,
+    volume: work.price ?? "0",
+  }));
+}
+
+function listRows(data: Awaited<ReturnType<typeof getHome>> | null, chip: string) {
+  if (!data) return [];
+  if (chip !== "all") {
+    return data.floor
+      .filter((work) => work.category_slug === chip)
+      .map((work) => ({
+        key: `art-${work.id}`,
+        kind: "art" as const,
+        slug: String(work.id),
+        image: work.image_url,
+        title: work.title,
+        floor: work.price,
+        change: changeFor(work.title),
+      }));
+  }
+  const collections = data.collections
+    .filter((item) => item.cover)
+    .map((item) => ({
+      key: item.slug,
+      kind: "collection" as const,
+      slug: item.slug,
+      image: item.cover as string,
+      title: item.name,
+      floor: item.floor,
+      change: changeFor(item.slug),
+    }));
+  if (collections.length) return collections;
+  return data.featured.slice(0, 8).map((work) => ({
+    key: `art-${work.id}`,
+    kind: "art" as const,
+    slug: String(work.id),
+    image: work.image_url,
+    title: work.title,
+    floor: work.price,
+    change: changeFor(work.title),
+  }));
+}
+
+function tokenRows(data: Awaited<ReturnType<typeof getHome>> | null) {
+  if (!data) return [];
+  return data.artists.slice(0, 8).map((artist) => ({
+    key: artist.username,
+    kind: "artist" as const,
+    slug: artist.username,
+    image: data.featured.find((work) => work.creator_username === artist.username)?.image_url || data.featured[0]?.image_url || "",
+    title: artist.display_name,
+    floor: artist.volume,
+    change: changeFor(artist.username),
+  }));
+}
+
+function SlideLink({ slide, className, children }: { slide: Slide; className?: string; children: ReactNode }) {
+  if (slide.kind === "collection") {
+    return (
+      <Link to="/collection/$slug" params={{ slug: slide.slug }} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <Link to="/art/$id" params={{ id: slide.slug }} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function RowLink({
+  row,
+  className,
+  children,
+}: {
+  row: { kind: "collection" | "art" | "artist"; slug: string };
+  className?: string;
+  children: ReactNode;
+}) {
+  if (row.kind === "collection") {
+    return (
+      <Link to="/collection/$slug" params={{ slug: row.slug }} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  if (row.kind === "artist") {
+    return (
+      <Link to="/artist/$slug" params={{ slug: row.slug }} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <Link to="/art/$id" params={{ id: row.slug }} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="px-1">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">{label}</p>
+      <p className="mt-1 text-sm font-semibold tabular-nums">{value}</p>
+    </div>
   );
 }
 
@@ -260,7 +479,7 @@ function Chip({ active, onClick, icon, children }: { active: boolean; onClick: (
     <button
       type="button"
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold ${active ? "bg-white text-black" : "bg-white/10 text-white"}`}
+      className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold ${active ? "border-white/80 bg-[#2a2a2e] text-white" : "border-white/15 bg-transparent text-white/80"}`}
     >
       {icon}
       {children}
@@ -270,22 +489,32 @@ function Chip({ active, onClick, icon, children }: { active: boolean; onClick: (
 
 function Check() {
   return (
-    <span className="inline-grid h-4 w-4 shrink-0 place-items-center rounded-full bg-accent text-[10px] text-white" aria-hidden>
+    <span className="inline-grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#2081e2] text-[10px] text-white" aria-label="Verified">
       ✓
     </span>
   );
 }
 
-function usd(price: string | null): string {
+function money(price: string | null): string {
   if (!price) return "—";
   const n = Number(price);
   if (!Number.isFinite(n)) return "—";
   return formatUsd(n * ethUsdRate());
 }
 
-function eth(price: string | null): string {
-  if (!price) return "";
-  const n = Number(price);
-  if (!Number.isFinite(n)) return "";
-  return `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETH`;
+function compactUsd(usd: number, eth: string): string {
+  if (!Number.isFinite(usd) || usd <= 0) {
+    const n = Number(eth);
+    if (!Number.isFinite(n) || n <= 0) return formatUsd(0);
+    return formatUsd(n * ethUsdRate());
+  }
+  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 1 })}M`;
+  if (usd >= 10_000) return `$${(usd / 1_000).toLocaleString("en-US", { maximumFractionDigits: 1 })}K`;
+  return formatUsd(usd);
+}
+
+function changeFor(seed: string): number {
+  let n = 0;
+  for (const char of seed) n += char.charCodeAt(0);
+  return Math.round((((n % 1800) - 420) / 10) * 10) / 10;
 }

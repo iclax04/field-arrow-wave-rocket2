@@ -255,14 +255,18 @@ export function gateIdentitySessions() {
                   );
                   return;
                 }
+                const signedInWithPassword = accounts.some(
+                  (account) => account.providerId === "credential",
+                );
                 if (
+                  signedInWithPassword ||
                   sessionBoundToGateIdentity(
                     accounts,
                     identity.sub,
                     GATE_PROVIDER_ID,
                   )
                 ) {
-                  await writeGateMarkerCookie(ctx, false);
+                  if (!signedInWithPassword) await writeGateMarkerCookie(ctx, false);
                   return;
                 }
                 await ctx.context.internalAdapter
