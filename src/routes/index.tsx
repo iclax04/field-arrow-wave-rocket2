@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { Camera, Clock3, Frame, Grid2x2, Image, Layers, LayoutGrid, Shapes } from "lucide-react";
+import { Calendar, Camera, ChevronDown, Clock3, Diamond, Frame, Gamepad2, Grid2x2, Image, Layers, LayoutGrid, Palette, Shapes, UserRound, Volume2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMarket } from "@/components/market/provider";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -32,7 +32,7 @@ type Slide = {
 
 function HomePage() {
   const { user, isPending } = useCurrentUserState();
-  const { setTheme } = useMarket();
+  const { setTheme, theme, toggleTheme } = useMarket();
   const [data, setData] = useState<Awaited<ReturnType<typeof getHome>> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [chip, setChip] = useState("all");
@@ -40,6 +40,7 @@ function HomePage() {
   const [paused, setPaused] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [panel, setPanel] = useState<"nfts" | "tokens">("nfts");
+  const [unit, setUnit] = useState<"usd" | "eth">("usd");
 
   useEffect(() => {
     setMounted(true);
@@ -91,45 +92,69 @@ function HomePage() {
   if (user) return <Navigate to="/dashboard" replace />;
 
   const rows = panel === "tokens" ? tokenRows(data) : listRows(data, chip);
+  const deskRail = fillRail(rows, data);
 
   return (
-    <div className="min-h-[100dvh] bg-black pb-10 font-sans text-white" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-      <div className="mx-auto max-w-6xl">
+    <div className="min-h-[100dvh] bg-black pb-10 font-sans text-white lg:pb-16" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div className="mx-auto max-w-[1440px]">
         {error ? <p className="px-3 py-2 text-sm text-red-300">{error}</p> : null}
 
-        <div className="flex gap-2 overflow-x-auto px-3 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="hidden items-center gap-2 px-4 py-3 lg:flex">
+          <Chip active={chip === "all"} onClick={() => setChip("all")} icon={<Grid2x2 size={14} aria-hidden />}>All</Chip>
+          <Chip active={chip === "memes"} onClick={() => setChip("memes")} icon={<Diamond size={14} aria-hidden />}>Memes</Chip>
+          <Chip active={chip === "cards"} onClick={() => setChip("cards")} icon={<Layers size={14} aria-hidden />}>Trading Cards</Chip>
+          <Chip active={chip === "painting"} onClick={() => setChip("painting")} icon={<Palette size={14} aria-hidden />}>Art</Chip>
+          <Chip active={chip === "pfps"} onClick={() => setChip("pfps")} icon={<UserRound size={14} aria-hidden />}>PFPs</Chip>
+          <Chip active={chip === "photography"} onClick={() => setChip("photography")} icon={<Camera size={14} aria-hidden />}>Photography</Chip>
+          <Chip active={chip === "gaming"} onClick={() => setChip("gaming")} icon={<Gamepad2 size={14} aria-hidden />}>Gaming</Chip>
+          <button type="button" className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-sm font-semibold text-white/80">
+            All chains <ChevronDown size={14} aria-hidden />
+          </button>
+          <div className="ml-auto flex items-center gap-1 text-sm font-semibold">
+            <button type="button" onClick={() => setPanel("nfts")} className={`rounded-full px-3 py-1.5 ${panel === "nfts" ? "bg-[#2a2a2e]" : "text-white/70"}`}>NFTs</button>
+            <button type="button" onClick={() => setPanel("tokens")} className={`rounded-full px-3 py-1.5 ${panel === "tokens" ? "bg-[#2a2a2e]" : "text-white/70"}`}>Tokens</button>
+            <span className="rounded-full px-3 py-1.5 text-white/40">Perps</span>
+            <span className="ml-1 inline-flex items-center gap-1 rounded-full px-2 py-1.5 text-white/80">1d <ChevronDown size={14} aria-hidden /></span>
+            <Calendar size={16} className="text-white/70" aria-hidden />
+          </div>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto px-3 py-3 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
           <Chip active={chip === "all"} onClick={() => setChip("all")} icon={<Grid2x2 size={14} aria-hidden />}>All</Chip>
           {data?.categories.map((category) => (
-            <Chip key={category.slug} active={chip === category.slug} onClick={() => setChip(category.slug)} icon={ICONS[category.slug]}>
+            <Chip key={`m-${category.slug}`} active={chip === category.slug} onClick={() => setChip(category.slug)} icon={ICONS[category.slug]}>
               {category.name}
             </Chip>
           ))}
         </div>
 
+        <div className="lg:px-4 lg:pb-14">
+          <div className="lg:flex lg:h-[calc(100dvh-11.5rem)] lg:min-h-[560px] lg:overflow-hidden lg:rounded-2xl lg:bg-[#101114]">
         {current ? (
-          <section className="px-3">
-            <SlideLink slide={current} className="relative block overflow-hidden rounded-[1.35rem]">
-              <img src={current.image} alt="" className="aspect-square w-full object-cover md:aspect-[16/7]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-              <div className="absolute inset-x-4 bottom-[5.6rem]">
-                <h1 className="flex items-center gap-1.5 text-[1.65rem] font-bold leading-none tracking-[-0.03em]">
+          <section className="relative min-w-0 flex-1 px-3 lg:px-0">
+            <SlideLink slide={current} className="relative block overflow-hidden rounded-[1.35rem] lg:h-full lg:rounded-none">
+              <img src={current.image} alt="" className="aspect-square w-full object-cover lg:absolute lg:inset-0 lg:aspect-auto lg:h-full" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent" />
+              <div className="absolute inset-x-5 bottom-24 lg:bottom-20">
+                <h1 className="flex items-center gap-2 text-[1.7rem] font-bold leading-none tracking-[-0.03em] lg:text-[2.15rem]">
                   {current.title}
                   <Check />
                 </h1>
-                <p className="mt-0.5 flex items-center gap-1.5 text-[15px] text-white/95">
+                <p className="mt-1 flex items-center gap-1.5 text-[15px] text-white/95">
                   By {current.by}
                   <Check />
                 </p>
               </div>
-              <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-white/15 bg-black/45 px-1 py-3 backdrop-blur-md">
-                <div className="grid grid-cols-3 divide-x divide-white/20 text-center">
-                  <Stat label="Floor price" value={money(current.floor)} />
+              <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-white/15 bg-black/45 px-1 py-3 backdrop-blur-md lg:inset-x-0 lg:bottom-0 lg:rounded-none lg:border-0 lg:border-t lg:border-white/10 lg:bg-black/50 lg:px-2 lg:py-3">
+                <div className="grid grid-cols-3 divide-x divide-white/20 text-center lg:grid-cols-4">
+                  <Stat label="Floor price" value={money(current.floor, unit)} />
                   <Stat label="Items" value={current.items.toLocaleString("en-US")} />
                   <Stat label="Total volume" value={compactUsd(Number(current.volume) * ethUsdRate(), current.volume)} />
+                  <Stat label="Listed" value={current.items.toLocaleString("en-US")} className="hidden lg:block" />
                 </div>
               </div>
             </SlideLink>
-            <div className="mt-3 flex justify-center gap-1.5" aria-hidden>
+            <div className="mt-3 flex justify-center gap-1.5 lg:hidden" aria-hidden>
               {slides.map((item, index) => (
                 <button
                   key={item.key}
@@ -142,10 +167,39 @@ function HomePage() {
             </div>
           </section>
         ) : (
-          <div className="mx-3 aspect-[5/4] animate-pulse rounded-[1.35rem] bg-white/10" />
+          <div className="mx-3 aspect-[5/4] animate-pulse rounded-[1.35rem] bg-white/10 lg:mx-0 lg:aspect-auto lg:h-full lg:min-h-[560px] lg:flex-1 lg:rounded-none" />
         )}
 
-        <div className="mt-4 flex items-center gap-2 px-3">
+        <aside className="hidden w-[320px] shrink-0 flex-col border-l border-white/10 bg-[#0c0c0e] px-3 py-3 lg:flex">
+          <div className="flex items-center justify-between px-1 pb-2 text-[11px] font-semibold tracking-[0.16em] text-white/45">
+            <span>{panel === "tokens" ? "TOKEN" : "COLLECTION"}</span>
+            <span>FLOOR</span>
+          </div>
+          <ul className="flex flex-1 flex-col justify-between py-1">
+            {deskRail.map((row) => (
+              <li key={`desk-${row.key}`}>
+                <RowLink row={row} className="flex items-center gap-3 rounded-xl px-1 py-2 hover:bg-white/5">
+                  <img src={row.image} alt="" className="h-10 w-10 rounded-lg bg-white/10 object-cover" />
+                  <span className="flex min-w-0 items-center gap-1 text-[15px] font-semibold">
+                    <span className="truncate">{row.title}</span>
+                    <Check />
+                  </span>
+                  <span className="ml-auto shrink-0 text-right">
+                    <span className="block text-sm font-semibold tabular-nums">{floorLabel(row.floor, unit)}</span>
+                    <span className={`block text-xs font-semibold tabular-nums ${row.change >= 0 ? "text-[#12b76a]" : "text-[#f04438]"}`}>
+                      {row.change >= 0 ? "+" : ""}
+                      {row.change.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                    </span>
+                  </span>
+                </RowLink>
+              </li>
+            ))}
+          </ul>
+        </aside>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 px-3 lg:hidden">
           <button
             type="button"
             onClick={() => setPanel("nfts")}
@@ -171,11 +225,11 @@ function HomePage() {
           </Link>
         </div>
 
-        <div className="mt-5 flex items-center justify-between px-4 text-[11px] font-semibold tracking-[0.16em] text-white/40">
+        <div className="mt-5 flex items-center justify-between px-4 text-[11px] font-semibold tracking-[0.16em] text-white/40 lg:hidden">
           <span>{panel === "tokens" ? "TOKEN" : "COLLECTION"}</span>
           <span>FLOOR</span>
         </div>
-        <ul className="md:grid md:grid-cols-2 md:gap-x-6">
+        <ul className="lg:hidden">
           {rows.map((row) => (
             <li key={row.key}>
               <RowLink row={row} className="flex items-center gap-3 px-3 py-2.5">
@@ -185,7 +239,7 @@ function HomePage() {
                   <Check />
                 </span>
                 <span className="ml-auto shrink-0 text-right">
-                  <span className="block text-[15px] font-semibold tabular-nums">{money(row.floor)}</span>
+                  <span className="block text-[15px] font-semibold tabular-nums">{money(row.floor, unit)}</span>
                   <span className={`block text-sm font-semibold tabular-nums ${row.change >= 0 ? "text-[#12b76a]" : "text-[#f04438]"}`}>
                     {row.change >= 0 ? "+" : ""}
                     {row.change.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
@@ -196,6 +250,7 @@ function HomePage() {
           ))}
         </ul>
 
+        <div className="mt-10">
         <Section
           title="Featured collections"
           subtitle="This week's curated collections"
@@ -268,7 +323,27 @@ function HomePage() {
             ))}
           </div>
         </Section>
+        </div>
       </div>
+
+      <footer className="fixed inset-x-0 bottom-0 z-30 hidden h-11 items-center gap-4 border-t border-white/10 bg-black px-4 text-xs text-white/70 lg:flex">
+        <span className="inline-flex items-center gap-1.5 font-semibold text-white"><span className="h-2 w-2 rounded-full bg-[#12b76a]" /> Live</span>
+        <Link to="/legal/$page" params={{ page: "terms" }} className="hover:text-white">Platform Terms</Link>
+        <Link to="/legal/$page" params={{ page: "fees" }} className="hover:text-white">Wallet & Onramp Terms</Link>
+        <Link to="/legal/$page" params={{ page: "privacy" }} className="hover:text-white">Privacy Policy</Link>
+        <span className="ml-auto font-semibold text-white">◆ {formatUsd(ethUsdRate())}</span>
+        <Link to="/help" className="hover:text-white">Support</Link>
+        <button type="button" className="hover:text-white" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={toggleTheme}>
+          {theme === "dark" ? "☾" : "☀"}
+        </button>
+        <Link to="/create-account" className="hover:text-white">Collector</Link>
+        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white">Pro</span>
+        <span className="inline-flex overflow-hidden rounded-full border border-white/15">
+          <button type="button" className={`px-2 py-0.5 ${unit === "eth" ? "bg-white text-black" : ""}`} onClick={() => setUnit("eth")}>Crypto</button>
+          <button type="button" className={`px-2 py-0.5 ${unit === "usd" ? "bg-white text-black" : ""}`} onClick={() => setUnit("usd")}>USD</button>
+        </span>
+        <Volume2 size={14} aria-hidden />
+      </footer>
     </div>
   );
 }
@@ -324,11 +399,46 @@ function RankList({
   );
 }
 
+function fillRail(
+  rows: { key: string; kind: "collection" | "art" | "artist"; slug: string; image: string; title: string; floor: string | null; change: number }[],
+  data: Awaited<ReturnType<typeof getHome>> | null,
+) {
+  if (rows.length >= 5 || !data) return rows.slice(0, 5);
+  const seen = new Set(rows.map((row) => row.slug));
+  const extra = data.featured
+    .filter((work) => !seen.has(String(work.id)))
+    .map((work) => ({
+      key: `fill-${work.id}`,
+      kind: "art" as const,
+      slug: String(work.id),
+      image: work.image_url,
+      title: work.title,
+      floor: work.price,
+      change: changeFor(work.title),
+    }));
+  return [...rows, ...extra].slice(0, 5);
+}
+
+function floorLabel(price: string | null, unit: "usd" | "eth"): string {
+  if (unit === "eth") return money(price, "eth");
+  if (!price) return "—";
+  return compactUsd(Number(price) * ethUsdRate(), price);
+}
+
+function categoryOf(chip: string) {
+  if (chip === "memes") return "object";
+  if (chip === "cards") return "textile";
+  if (chip === "pfps") return "installation";
+  if (chip === "gaming" || chip === "all") return "all";
+  return chip;
+}
+
 function buildSlides(data: Awaited<ReturnType<typeof getHome>> | null, chip: string): Slide[] {
   if (!data) return [];
-  if (chip !== "all") {
+  const category = categoryOf(chip);
+  if (category !== "all") {
     return data.floor
-      .filter((work) => work.category_slug === chip)
+      .filter((work) => work.category_slug === category)
       .slice(0, 5)
       .map((work) => ({
         key: `art-${work.id}`,
@@ -371,9 +481,10 @@ function buildSlides(data: Awaited<ReturnType<typeof getHome>> | null, chip: str
 
 function listRows(data: Awaited<ReturnType<typeof getHome>> | null, chip: string) {
   if (!data) return [];
-  if (chip !== "all") {
+  const category = categoryOf(chip);
+  if (category !== "all") {
     return data.floor
-      .filter((work) => work.category_slug === chip)
+      .filter((work) => work.category_slug === category)
       .map((work) => ({
         key: `art-${work.id}`,
         kind: "art" as const,
@@ -465,9 +576,9 @@ function RowLink({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return (
-    <div className="px-1">
+    <div className={`px-1 ${className}`}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">{label}</p>
       <p className="mt-1 text-sm font-semibold tabular-nums">{value}</p>
     </div>
@@ -495,10 +606,11 @@ function Check() {
   );
 }
 
-function money(price: string | null): string {
+function money(price: string | null, unit: "usd" | "eth" = "usd"): string {
   if (!price) return "—";
   const n = Number(price);
   if (!Number.isFinite(n)) return "—";
+  if (unit === "eth") return `${n.toLocaleString("en-US", { maximumFractionDigits: 3 })} ETH`;
   return formatUsd(n * ethUsdRate());
 }
 

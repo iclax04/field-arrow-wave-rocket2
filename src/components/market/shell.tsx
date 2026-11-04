@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu, Search, X } from "lucide-react";
+import { Activity, ChevronDown, Circle, Compass, Home, Menu, Radio, Search, X } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { SignedIn } from "@/lib/auth/gates";
@@ -21,6 +21,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const [menu, setMenu] = useState(false);
   const [account, setAccount] = useState(false);
   const [banner, setBanner] = useState("");
+  const [promo, setPromo] = useState(true);
+  const [deskMenu, setDeskMenu] = useState<"explore" | "more" | "search" | null>(null);
 
   useEffect(() => {
     if (pathname.startsWith("/admin")) return;
@@ -55,7 +57,17 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className={home || studio ? "min-h-screen bg-black text-white" : "min-h-screen bg-bg text-fg"}>
       {showPublic && home ? (
         <header className="sticky top-0 z-40 border-b border-white/10 bg-black pt-[env(safe-area-inset-top)] text-white">
-          <div className="mx-auto flex h-[52px] max-w-6xl items-center gap-1 px-1">
+          {promo ? (
+            <div className="relative hidden h-9 items-center justify-center gap-2 bg-[#111214] px-10 text-[13px] text-white/80 lg:flex">
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-[#2081e2] text-[10px] font-bold text-white" aria-hidden>A</span>
+              Agora is live: Collect and trade artworks.
+              <Link to="/help" className="font-semibold text-white underline-offset-2 hover:underline">Learn more</Link>
+              <button type="button" className="absolute right-3 grid h-7 w-7 place-items-center text-white/70" aria-label="Dismiss announcement" onClick={() => setPromo(false)}>
+                <X size={16} aria-hidden />
+              </button>
+            </div>
+          ) : null}
+          <div className="mx-auto flex h-[52px] max-w-6xl items-center gap-1 px-1 lg:hidden">
             <button
               type="button"
               className="grid h-11 w-11 place-items-center"
@@ -80,6 +92,52 @@ export function Shell({ children }: { children: ReactNode }) {
             <Link to="/login" search={{ mode: "in" }} className="mr-2 rounded-full bg-[#2081e2] px-4 py-[7px] text-[15px] font-semibold leading-none text-white">
               Sign in
             </Link>
+          </div>
+          <div className="mx-auto hidden h-14 max-w-[1440px] items-center gap-1 px-4 lg:flex">
+            <Link to="/" aria-label="Agora" className="grid h-9 w-9 place-items-center rounded-full bg-[#2081e2] text-sm font-bold text-white">A</Link>
+            <nav className="ml-2 flex items-center gap-0.5 text-[15px] font-semibold">
+              <Link to="/" className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 hover:bg-white/10"><Home size={16} aria-hidden /> Home</Link>
+              <div className="relative">
+                <button type="button" className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 hover:bg-white/10" aria-expanded={deskMenu === "explore"} onClick={() => setDeskMenu(deskMenu === "explore" ? null : "explore")}>
+                  <Compass size={16} aria-hidden /> Explore <ChevronDown size={14} aria-hidden />
+                </button>
+                {deskMenu === "explore" ? (
+                  <div className="absolute left-0 top-11 z-20 w-48 rounded-xl border border-white/10 bg-[#1a1b1f] p-1 shadow-xl">
+                    <Link to="/explore" search={floor} className="block rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setDeskMenu(null)}>Artworks</Link>
+                    <Link to="/artists" className="block rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setDeskMenu(null)}>Artists</Link>
+                  </div>
+                ) : null}
+              </div>
+              <Link to="/explore" search={floor} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 hover:bg-white/10"><Radio size={16} aria-hidden /> Feed</Link>
+              <Link to="/activity" className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 hover:bg-white/10"><Activity size={16} aria-hidden /> Activity</Link>
+              <div className="relative">
+                <button type="button" className="inline-flex items-center gap-1 rounded-xl px-3 py-2 hover:bg-white/10" aria-expanded={deskMenu === "more"} onClick={() => setDeskMenu(deskMenu === "more" ? null : "more")}>
+                  More <ChevronDown size={14} aria-hidden />
+                </button>
+                {deskMenu === "more" ? (
+                  <div className="absolute left-0 top-11 z-20 w-52 rounded-xl border border-white/10 bg-[#1a1b1f] p-1 shadow-xl">
+                    <Link to="/help" className="block rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setDeskMenu(null)}>Help Center</Link>
+                    <Link to="/legal/$page" params={{ page: "fees" }} className="block rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setDeskMenu(null)}>Fees and royalties</Link>
+                    <Link to="/contact" className="block rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setDeskMenu(null)}>Support</Link>
+                  </div>
+                ) : null}
+              </div>
+            </nav>
+            <div className="ml-auto flex items-center gap-1">
+              {deskMenu === "search" ? (
+                <form onSubmit={search} className="w-64">
+                  <SearchField q={q} setQ={setQ} onDark />
+                </form>
+              ) : (
+                <button type="button" className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[15px] font-semibold hover:bg-white/10" onClick={() => setDeskMenu("search")}>
+                  <Search size={16} aria-hidden /> Search
+                </button>
+              )}
+              <Link to="/login" search={{ mode: "in" }} className="rounded-xl px-3 py-2 text-[15px] font-semibold hover:bg-white/10">Sign in</Link>
+              <Link to="/create-account" aria-label="Create account" className="grid h-9 w-9 place-items-center rounded-full border border-white/30 text-white/80">
+                <Circle size={18} aria-hidden />
+              </Link>
+            </div>
           </div>
         </header>
       ) : null}
@@ -189,7 +247,7 @@ export function Shell({ children }: { children: ReactNode }) {
         ) : null}
         {children}
       </main>
-      <CookieNotice lift={studio} />
+      <CookieNotice lift={studio} desktopLift={home} />
       <SessionWatch />
     </div>
   );
@@ -275,7 +333,7 @@ function AccountButton({
   );
 }
 
-function CookieNotice({ lift = false }: { lift?: boolean }) {
+function CookieNotice({ lift = false, desktopLift = false }: { lift?: boolean; desktopLift?: boolean }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     try {
@@ -286,7 +344,7 @@ function CookieNotice({ lift = false }: { lift?: boolean }) {
   }, []);
   if (!open) return null;
   return (
-    <div className={`fixed inset-x-0 z-50 border-t border-line bg-surface p-4 text-sm shadow-[var(--shadow)] ${lift ? "bottom-16" : "bottom-0"}`}>
+    <div className={`fixed inset-x-0 z-50 border-t border-line bg-surface p-4 text-sm shadow-[var(--shadow)] ${lift ? "bottom-16" : "bottom-0"} ${desktopLift ? "lg:bottom-12" : ""}`}>
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
         <p className="max-w-3xl text-muted">
           We use necessary cookies to keep you signed in. See the <Link to="/legal/$page" params={{ page: "cookies" }} className="text-accent">Cookie Policy</Link>.
